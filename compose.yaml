@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: mnarchive
+      POSTGRES_USER: mnarchive
+      POSTGRES_PASSWORD: mnarchive
+    ports:
+      - "5432:5432"
+    volumes:
+      - mnarchive-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mnarchive"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  mnarchive-data:

@@ -1,0 +1,16 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# 환경 변수 (GOOGLE_CLIENT_SECRET, DB_PASSWORD 등)
+.env
+*.local.yml
+
+# OS
+.DS_Store
