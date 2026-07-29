@@ -155,8 +155,10 @@ erDiagram
 
 - [x] 조회 API — 곡 목록(피벗), 플레이어 랭킹
 - [ ] 조회 API — 배치 diff, 차트별 점수 추이, 곡별 점수 랭킹
-- [ ] 프로필 파싱 (팝클래스·플레이 횟수는 메인 페이지에 있음)
-- [ ] `scripts/popn-sync.js`의 셀렉터 실검증 — LIGHT/NORMAL/HYPER 점수가 있는 계정 필요
+- [x] 프로필 파싱 (팝클래스·플레이 횟수) — 구현 완료. 라벨 실검증만 남음
+- [ ] `scripts/popn-sync.js` 실검증 — 팝픈 계정 필요. 두 가지다:
+      곡 목록 셀렉터(LIGHT/NORMAL/HYPER 점수가 있는 계정),
+      프로필 라벨(프로필 페이지에서 `__popnParseProfile(document)` 실행)
 - [ ] `charts.level`, `songs.version/bpm/duration`, `charts.notes` 시딩
 - [ ] `clear_medals`의 `meda_l` 정체 확인 (현재 `unknown_l`로 임시 배치)
 
