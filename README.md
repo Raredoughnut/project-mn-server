@@ -153,7 +153,8 @@ erDiagram
 
 ## 남은 작업
 
-- [ ] 조회 API — 곡 목록(피벗), 배치 diff, 차트별 점수 추이
+- [x] 조회 API — 곡 목록(피벗), 플레이어 랭킹
+- [ ] 조회 API — 배치 diff, 차트별 점수 추이, 곡별 점수 랭킹
 - [ ] 프로필 파싱 (팝클래스·플레이 횟수는 메인 페이지에 있음)
 - [ ] `scripts/popn-sync.js`의 셀렉터 실검증 — LIGHT/NORMAL/HYPER 점수가 있는 계정 필요
 - [ ] `charts.level`, `songs.version/bpm/duration`, `charts.notes` 시딩
@@ -164,72 +165,13 @@ erDiagram
 백엔드를 띄운 뒤 **http://localhost:8080/swagger-ui.html** 에서 모든 엔드포인트를 확인하고
 직접 호출해 볼 수 있다. OpenAPI 스펙(JSON)은 `/v3/api-docs`.
 
-### 프론트엔드 연동 요약
+### 프론트엔드 연동
 
-Swagger UI 에 나오지 않는 인증 흐름이 있어 여기에 정리한다.
+인증 흐름, CSRF, 엔드포인트별 요청/응답, 아직 값이 비어 있는 필드는 **[docs/api.md](docs/api.md)**
+에 정리해 두었다. 프론트엔드 작업자에게는 그 문서를 건네면 된다.
 
-```js
-const API = process.env.NEXT_PUBLIC_API_BASE;   // 로컬: http://localhost:8080
-
-// 모든 API 호출은 이 두 가지가 반드시 붙어야 한다. 래퍼를 하나 만들어 쓰는 편이 안전하다.
-const api = (path, init = {}) => fetch(`${API}${path}`, {
-  ...init,
-  credentials: 'include',                     // 세션 쿠키 전송에 필수
-  headers: {
-    'X-Requested-With': 'XMLHttpRequest',     // Accept 협상과 무관하게 401 을 보장
-    ...init.headers,
-  },
-});
-
-// 1. 로그인 상태 확인 (페이지 로드 시)
-const res = await api('/api/me');
-if (res.ok) { /* 로그인됨 */ } else { /* 로그인 버튼 표시 */ }
-
-// 2. 로그인 시작 — fetch 가 아니라 페이지 이동
-window.location.href = `${API}/oauth2/authorization/google`;
-
-// 3. 로그아웃
-window.location.href = `${API}/logout`;
-
-// 4. 데이터 조회
-const songs = await api('/api/songs?page=0&size=50').then(r => r.json());
-```
-
-**주의할 점**
-
-- **로그인은 `fetch` 로 할 수 없다.** OAuth 는 구글 도메인으로 리다이렉트되는 방식이라
-  AJAX 로 처리가 불가능하다. 반드시 `window.location.href` 로 페이지를 이동시킨다.
-  로그인이 끝나면 백엔드가 `app.frontend-url` 로 되돌려 보낸다.
-- **모든 API 호출에 `credentials: 'include'`.** JWT 가 아니라 세션 쿠키를 쓰므로,
-  빠뜨리면 쿠키가 실리지 않아 401 이 난다.
-- **모든 API 호출에 `X-Requested-With: XMLHttpRequest` 헤더.** 미인증 응답이 `Accept` 헤더에
-  따라 갈리는데, 이 헤더는 그 협상과 무관하게 401 을 보장한다.
-
-  | 요청 | 미인증 시 응답 |
-  |---|---|
-  | `Accept: */*` (fetch 기본값) | 401 |
-  | `Accept: text/html` | 302 → 구글 로그인 |
-  | `X-Requested-With` 있음 | 401 (Accept 무관) |
-
-  fetch 기본값이라면 헤더가 없어도 401 이 나오지만, `Accept` 에 `text/html` 이 섞이는 순간
-  리다이렉트로 바뀌어 fetch 가 구글 로그인 HTML 을 받고 CORS 오류처럼 보인다. 라이브러리나
-  SSR 경유로 Accept 가 바뀌는 경우까지 신경 쓰지 않으려면 그냥 붙이는 편이 낫다.
-  `/api/me` 뿐 아니라 `/api/songs` 등 인증이 필요한 모든 엔드포인트에 해당한다.
-- **`POST /api/imports` 는 프론트가 부를 일이 없다.** 북마클릿이 이게이트 페이지에서
-  직접 호출하는 엔드포인트이며, 세션이 아니라 개인 토큰으로 인증한다.
-
-### 현재 값이 비어 있는 필드
-
-아래는 스키마에는 있지만 **아직 데이터가 채워지지 않았다.** 프론트에서 null 처리가 필요하다.
-
-| 필드 | 이유 |
-|---|---|
-| `charts.level`, `notes` | mu_top 에 없어 별도 시딩 필요 |
-| `songs.version`, `bpm`, `duration` | 동일 |
-| `users.popClass`, 플레이 횟수, `playerName` | 프로필 파싱 미구현 |
-
-`playerName` 이 null 이면 아직 스코어를 한 번도 임포트하지 않은 사용자다 —
-프론트는 이걸로 "북마클릿 설치 안내" 화면을 띄울지 판단할 수 있다.
+API 를 고칠 때 그 문서도 같은 커밋에서 함께 고칠 것 — 특히 세션·CSRF 처럼 프론트를 깨뜨리는
+변경은 코드만 바꾸면 상대는 알 방법이 없다.
 
 ### 팀원이 백엔드를 로컬에서 띄우려면
 
