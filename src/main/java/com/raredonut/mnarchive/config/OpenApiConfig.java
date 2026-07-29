@@ -51,8 +51,10 @@ public class OpenApiConfig {
                             방식이라 AJAX 로 처리할 수 없다. 로그인이 끝나면 백엔드가
                             프론트 주소(`app.frontend-url`)로 되돌려 보낸다.
 
-                            **`X-Requested-With` 헤더**: 이게 없으면 미인증 시 401 대신 구글 로그인
-                            페이지로 리다이렉트되어, fetch 가 HTML 을 받아 CORS 오류처럼 보인다.
+                            **`X-Requested-With` 헤더**: 미인증 응답이 `Accept` 헤더에 따라 갈린다.
+                            fetch 기본값(`Accept: */*`)이면 이 헤더가 없어도 401 이지만, `Accept` 에
+                            `text/html` 이 섞이면 구글 로그인 페이지로 리다이렉트되어 fetch 가 HTML 을
+                            받고 CORS 오류처럼 보인다. 이 헤더는 그 협상과 무관하게 401 을 보장한다.
 
                             ## 데이터 모델 요점
 

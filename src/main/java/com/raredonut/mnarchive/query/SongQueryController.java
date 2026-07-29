@@ -35,13 +35,14 @@ public class SongQueryController {
             ```js
             fetch(`${API}/api/songs?page=0&size=50`, {
               credentials: 'include',                            // 세션 쿠키 전송에 필수
-              headers: { 'X-Requested-With': 'XMLHttpRequest' },  // 401을 받기 위해 필수
+              headers: { 'X-Requested-With': 'XMLHttpRequest' },  // Accept 협상과 무관하게 401 보장
             })
             ```
 
-            이 엔드포인트는 인증이 필요하다. `X-Requested-With` 헤더가 없으면 미인증 시
-            401 대신 구글 로그인 페이지로 리다이렉트되어, fetch 가 HTML 을 받아
-            CORS 오류처럼 보인다.
+            이 엔드포인트는 인증이 필요하다. `X-Requested-With` 헤더는 미인증 응답을 `Accept`
+            헤더와 무관하게 401 로 고정한다. fetch 기본값(`Accept: */*`)이면 없어도 401 이지만,
+            `Accept` 에 `text/html` 이 섞이면 구글 로그인 페이지로 리다이렉트되어 fetch 가
+            HTML 을 받고 CORS 오류처럼 보인다.
 
             아직 플레이하지 않은 보면도 포함된다. charts(보면 마스터)를 기준으로 조회하므로
             "레벨은 있는데 점수가 비어 있는" 칸이 나오며, 이걸로 '다음에 칠 곡' 화면을 만들 수 있다.

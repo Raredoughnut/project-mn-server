@@ -176,7 +176,7 @@ const api = (path, init = {}) => fetch(`${API}${path}`, {
   ...init,
   credentials: 'include',                     // 세션 쿠키 전송에 필수
   headers: {
-    'X-Requested-With': 'XMLHttpRequest',     // 미인증 시 리다이렉트 대신 401 을 받기 위해 필수
+    'X-Requested-With': 'XMLHttpRequest',     // Accept 협상과 무관하게 401 을 보장
     ...init.headers,
   },
 });
@@ -202,8 +202,18 @@ const songs = await api('/api/songs?page=0&size=50').then(r => r.json());
   로그인이 끝나면 백엔드가 `app.frontend-url` 로 되돌려 보낸다.
 - **모든 API 호출에 `credentials: 'include'`.** JWT 가 아니라 세션 쿠키를 쓰므로,
   빠뜨리면 쿠키가 실리지 않아 401 이 난다.
-- **모든 API 호출에 `X-Requested-With: XMLHttpRequest` 헤더.** 없으면 미인증 시 401 대신
-  구글 로그인 페이지로 리다이렉트되어, fetch 가 HTML 을 받아 CORS 오류처럼 보인다.
+- **모든 API 호출에 `X-Requested-With: XMLHttpRequest` 헤더.** 미인증 응답이 `Accept` 헤더에
+  따라 갈리는데, 이 헤더는 그 협상과 무관하게 401 을 보장한다.
+
+  | 요청 | 미인증 시 응답 |
+  |---|---|
+  | `Accept: */*` (fetch 기본값) | 401 |
+  | `Accept: text/html` | 302 → 구글 로그인 |
+  | `X-Requested-With` 있음 | 401 (Accept 무관) |
+
+  fetch 기본값이라면 헤더가 없어도 401 이 나오지만, `Accept` 에 `text/html` 이 섞이는 순간
+  리다이렉트로 바뀌어 fetch 가 구글 로그인 HTML 을 받고 CORS 오류처럼 보인다. 라이브러리나
+  SSR 경유로 Accept 가 바뀌는 경우까지 신경 쓰지 않으려면 그냥 붙이는 편이 낫다.
   `/api/me` 뿐 아니라 `/api/songs` 등 인증이 필요한 모든 엔드포인트에 해당한다.
 - **`POST /api/imports` 는 프론트가 부를 일이 없다.** 북마클릿이 이게이트 페이지에서
   직접 호출하는 엔드포인트이며, 세션이 아니라 개인 토큰으로 인증한다.
