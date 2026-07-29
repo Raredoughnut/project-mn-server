@@ -33,8 +33,15 @@ public class SongQueryController {
 
             호출 방법:
             ```js
-            fetch(`${API}/api/songs?page=0&size=50`, { credentials: 'include' })
+            fetch(`${API}/api/songs?page=0&size=50`, {
+              credentials: 'include',                            // 세션 쿠키 전송에 필수
+              headers: { 'X-Requested-With': 'XMLHttpRequest' },  // 401을 받기 위해 필수
+            })
             ```
+
+            이 엔드포인트는 인증이 필요하다. `X-Requested-With` 헤더가 없으면 미인증 시
+            401 대신 구글 로그인 페이지로 리다이렉트되어, fetch 가 HTML 을 받아
+            CORS 오류처럼 보인다.
 
             아직 플레이하지 않은 보면도 포함된다. charts(보면 마스터)를 기준으로 조회하므로
             "레벨은 있는데 점수가 비어 있는" 칸이 나오며, 이걸로 '다음에 칠 곡' 화면을 만들 수 있다.

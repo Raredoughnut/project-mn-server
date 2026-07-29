@@ -158,6 +158,7 @@ erDiagram
 - [ ] `scripts/popn-sync.js`의 셀렉터 실검증 — LIGHT/NORMAL/HYPER 점수가 있는 계정 필요
 - [ ] `charts.level`, `songs.version/bpm/duration`, `charts.notes` 시딩
 - [ ] `clear_medals`의 `meda_l` 정체 확인 (현재 `unknown_l`로 임시 배치)
+
 ## API 문서
 
 백엔드를 띄운 뒤 **http://localhost:8080/swagger-ui.html** 에서 모든 엔드포인트를 확인하고
@@ -170,11 +171,18 @@ Swagger UI 에 나오지 않는 인증 흐름이 있어 여기에 정리한다.
 ```js
 const API = process.env.NEXT_PUBLIC_API_BASE;   // 로컬: http://localhost:8080
 
-// 1. 로그인 상태 확인 (페이지 로드 시)
-const res = await fetch(`${API}/api/me`, {
-  credentials: 'include',                             // 세션 쿠키 전송에 필수
-  headers: { 'X-Requested-With': 'XMLHttpRequest' },  // 401을 받기 위해 필수
+// 모든 API 호출은 이 두 가지가 반드시 붙어야 한다. 래퍼를 하나 만들어 쓰는 편이 안전하다.
+const api = (path, init = {}) => fetch(`${API}${path}`, {
+  ...init,
+  credentials: 'include',                     // 세션 쿠키 전송에 필수
+  headers: {
+    'X-Requested-With': 'XMLHttpRequest',     // 미인증 시 리다이렉트 대신 401 을 받기 위해 필수
+    ...init.headers,
+  },
 });
+
+// 1. 로그인 상태 확인 (페이지 로드 시)
+const res = await api('/api/me');
 if (res.ok) { /* 로그인됨 */ } else { /* 로그인 버튼 표시 */ }
 
 // 2. 로그인 시작 — fetch 가 아니라 페이지 이동
@@ -184,9 +192,7 @@ window.location.href = `${API}/oauth2/authorization/google`;
 window.location.href = `${API}/logout`;
 
 // 4. 데이터 조회
-const songs = await fetch(`${API}/api/songs?page=0&size=50`, {
-  credentials: 'include',
-}).then(r => r.json());
+const songs = await api('/api/songs?page=0&size=50').then(r => r.json());
 ```
 
 **주의할 점**
@@ -196,8 +202,9 @@ const songs = await fetch(`${API}/api/songs?page=0&size=50`, {
   로그인이 끝나면 백엔드가 `app.frontend-url` 로 되돌려 보낸다.
 - **모든 API 호출에 `credentials: 'include'`.** JWT 가 아니라 세션 쿠키를 쓰므로,
   빠뜨리면 쿠키가 실리지 않아 401 이 난다.
-- **`/api/me` 에는 `X-Requested-With: XMLHttpRequest` 헤더.** 없으면 미인증 시 401 대신
+- **모든 API 호출에 `X-Requested-With: XMLHttpRequest` 헤더.** 없으면 미인증 시 401 대신
   구글 로그인 페이지로 리다이렉트되어, fetch 가 HTML 을 받아 CORS 오류처럼 보인다.
+  `/api/me` 뿐 아니라 `/api/songs` 등 인증이 필요한 모든 엔드포인트에 해당한다.
 - **`POST /api/imports` 는 프론트가 부를 일이 없다.** 북마클릿이 이게이트 페이지에서
   직접 호출하는 엔드포인트이며, 세션이 아니라 개인 토큰으로 인증한다.
 
