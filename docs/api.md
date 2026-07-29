@@ -10,6 +10,8 @@ Swagger가 보여주지 못하는 내용이 여기 있다.
 | 운영 | `https://api.raredonut.com` |
 | Swagger UI | `/swagger-ui.html` — 로컬만. 운영은 꺼져 있다 |
 
+백엔드를 로컬에 띄우고 실제 데이터로 작업하는 방법은 **[docs/local-setup.md](local-setup.md)** 참고.
+
 ---
 
 ## 진행 상황
