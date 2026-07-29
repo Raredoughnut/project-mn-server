@@ -40,12 +40,18 @@ app:
   # 프리뷰 배포처럼 오리진이 여러 개 필요할 때만 CORS_ALLOWED_ORIGINS 에 쉼표로 나열한다.
   allowed-origins: ${CORS_ALLOWED_ORIGINS:${app.frontend-url}}
 
+  # API 문서 노출 여부. 개발 편의를 위해 기본은 켜 두고, 운영에서는 API_DOCS_ENABLED=false 로 끈다.
+  # 접근을 인증으로 조이는 대신 엔드포인트 자체를 없앤다 — 지금은 구글 계정만 있으면 누구나
+  # 로그인되므로(가입 allowlist 없음) authenticated() 로는 실질적인 보호가 되지 않는다.
+  # springdoc 과 SecurityConfig 가 이 값 하나를 함께 본다.
+  api-docs-enabled: ${API_DOCS_ENABLED:true}
+
 springdoc:
   api-docs:
-    enabled: true
+    enabled: ${app.api-docs-enabled}
     path: /v3/api-docs
   swagger-ui:
-    enabled: true
+    enabled: ${app.api-docs-enabled}
     path: /swagger-ui.html
     operations-sorter: alpha
     tags-sorter: alpha
