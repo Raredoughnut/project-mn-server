@@ -40,6 +40,12 @@ app:
   # 프리뷰 배포처럼 오리진이 여러 개 필요할 때만 CORS_ALLOWED_ORIGINS 에 쉼표로 나열한다.
   allowed-origins: ${CORS_ALLOWED_ORIGINS:${app.frontend-url}}
 
+  # CSRF 토큰 쿠키의 도메인. 프론트가 이 쿠키를 읽어 헤더로 되돌려줘야 상태 변경 요청이 통한다.
+  # 로컬은 프론트·백엔드가 둘 다 localhost 라 비워 두면 되고(쿠키는 포트를 구분하지 않는다),
+  # 운영은 mn.raredonut.com 이 api.raredonut.com 의 쿠키를 읽어야 하므로 상위 도메인이 필요하다.
+  # 운영: APP_COOKIE_DOMAIN=raredonut.com
+  cookie-domain: ${APP_COOKIE_DOMAIN:}
+
   # API 문서 노출 여부. 개발 편의를 위해 기본은 켜 두고, 운영에서는 API_DOCS_ENABLED=false 로 끈다.
   # 접근을 인증으로 조이는 대신 엔드포인트 자체를 없앤다 — 지금은 구글 계정만 있으면 누구나
   # 로그인되므로(가입 allowlist 없음) authenticated() 로는 실질적인 보호가 되지 않는다.

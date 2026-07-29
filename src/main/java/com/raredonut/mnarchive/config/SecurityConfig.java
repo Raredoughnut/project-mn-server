@@ -7,7 +7,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.security.web.util.matcher.RequestHeaderRequestMatcher;
+import org.springframework.util.StringUtils;
 
 @Configuration
 public class SecurityConfig {
@@ -19,13 +22,32 @@ public class SecurityConfig {
     private final MnOidcUserService oidcUserService;
     private final String frontendUrl;
     private final boolean apiDocsEnabled;
+    private final String cookieDomain;
 
     public SecurityConfig(MnOidcUserService oidcUserService,
                           @Value("${app.frontend-url}") String frontendUrl,
-                          @Value("${app.api-docs-enabled}") boolean apiDocsEnabled) {
+                          @Value("${app.api-docs-enabled}") boolean apiDocsEnabled,
+                          @Value("${app.cookie-domain:}") String cookieDomain) {
         this.oidcUserService = oidcUserService;
         this.frontendUrl = frontendUrl;
         this.apiDocsEnabled = apiDocsEnabled;
+        this.cookieDomain = cookieDomain;
+    }
+
+    /**
+     * CSRF 토큰을 담을 쿠키.
+     *
+     * 프론트와 백엔드가 다른 호스트라 도메인 설정이 필요하다. 로컬은 둘 다 localhost 라
+     * (포트만 다르고 쿠키는 포트를 구분하지 않는다) 기본값인 host-only 로 충분하지만,
+     * 운영은 mn.raredonut.com 이 api.raredonut.com 이 심은 쿠키를 읽어야 하므로
+     * 상위 도메인(raredonut.com)으로 올려야 한다. APP_COOKIE_DOMAIN 으로 지정한다.
+     */
+    private CsrfTokenRepository csrfTokenRepository() {
+        CookieCsrfTokenRepository repository = CookieCsrfTokenRepository.withHttpOnlyFalse();
+        if (StringUtils.hasText(cookieDomain)) {
+            repository.setCookieCustomizer(cookie -> cookie.domain(cookieDomain));
+        }
+        return repository;
     }
 
     @Bean
@@ -62,7 +84,15 @@ public class SecurityConfig {
                 )
 
                 // /api/imports 는 쿠키를 쓰지 않으므로 CSRF 대상이 아니다. 나머지는 CSRF 유지.
-                .csrf(csrf -> csrf.ignoringRequestMatchers("/api/imports"))
+                //
+                // 기본 저장소(HttpSessionCsrfTokenRepository)는 토큰을 세션에만 두는데,
+                // 그러면 별도 오리진의 SPA 가 토큰을 얻을 방법이 없어 모든 상태 변경 요청이
+                // 403 이 된다. HttpOnly 를 끈 쿠키에 실어 프론트가 읽어 갈 수 있게 한다.
+                .csrf(csrf -> csrf
+                        .ignoringRequestMatchers("/api/imports")
+                        .csrfTokenRepository(csrfTokenRepository())
+                        .csrfTokenRequestHandler(new SpaCsrfTokenRequestHandler())
+                )
 
                 .oauth2Login(oauth -> oauth
                         .userInfoEndpoint(ui -> ui.oidcUserService(oidcUserService))
