@@ -37,6 +37,9 @@ dependencies {
     runtimeOnly("org.flywaydb:flyway-database-postgresql")
     runtimeOnly("org.postgresql:postgresql")
 
+// API 문서 자동 생성. Boot 4 에는 반드시 3.x 라인 (2.x 는 Boot 3 용).
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.3")
+
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.security:spring-security-test")
     testImplementation("org.testcontainers:postgresql")

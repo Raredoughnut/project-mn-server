@@ -33,6 +33,18 @@ spring:
 app:
   cdn-url: https://cdn.raredonut.com/popn-sync.js
   api-base: https://api.raredonut.com
+  # 로그인/로그아웃 후 돌아갈 프론트 주소. 배포 시 FRONTEND_URL 환경변수로 덮어쓴다
+  # (운영: https://mn.raredonut.com)
+  frontend-url: ${FRONTEND_URL:http://localhost:3000}
+springdoc:
+  api-docs:
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    operations-sorter: alpha
+    tags-sorter: alpha
 
 logging:
   level:
