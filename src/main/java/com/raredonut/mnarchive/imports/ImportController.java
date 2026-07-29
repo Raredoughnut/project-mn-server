@@ -59,9 +59,18 @@ public class ImportController {
             }
         }
 
-        return importService.ingest(req.token(), req.source(), req.records());
+        // 프로필은 선택 항목이다. 배포된 북마클릿이 갱신되기 전에는 아예 오지 않고,
+        // 페이지 구조가 바뀌면 일부만 온다. 어느 쪽이든 스코어 수집은 계속되어야 한다.
+        ProfileRow profile = req.profile();
+        if (profile != null && !validator.validate(profile).isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "invalid profile");
+        }
+
+        return importService.ingest(req.token(), req.source(), req.records(), profile);
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public record ImportRequest(String token, String source, List<@Valid ScoreRow> records) {}
+    public record ImportRequest(String token, String source,
+                                List<@Valid ScoreRow> records,
+                                @Valid ProfileRow profile) {}
 }

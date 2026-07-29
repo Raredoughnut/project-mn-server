@@ -41,17 +41,27 @@ public class ImportService {
     }
 
     @Transactional
-    public ImportResult ingest(String token, String source, List<ScoreRow> rows) {
+    public ImportResult ingest(String token, String source, List<ScoreRow> rows, ProfileRow profile) {
         long userId = tokenService.resolveUserId(token)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
 
         String checksum = checksum(rows);
+
+        // 프로필 현재값은 중복 업로드여도 반영한다. 점수가 하나도 안 올라도 플레이 횟수나
+        // 마지막 플레이 시각은 달라져 있을 수 있고, 덮어써도 잃는 정보가 없다.
+        if (profile != null && !profile.isEmpty()) {
+            updateUserProfile(userId, profile);
+        }
 
         // 2. 중복 업로드 --------------------------------------------------------
         Optional<Long> dup = jdbc.sql("SELECT id FROM import_batches WHERE user_id = ? AND payload_checksum = ?")
                 .params(userId, checksum)
                 .query(Long.class).optional();
         if (dup.isPresent()) {
+            // 스냅샷은 남기지 않는다 — import_batch_id 가 NOT NULL 이라 붙일 배치가 없다.
+            // 체크섬이 스코어만 보므로, 프로필만 변한 업로드는 추이에 기록되지 않는다.
+            // 팝클래스는 점수가 올라야 오르므로 실질적 누락은 아니지만, 플레이 횟수 추이를
+            // 정밀하게 봐야 한다면 체크섬에 프로필을 포함시키는 쪽으로 바꿔야 한다.
             return new ImportResult(dup.get(), rows.size(), 0, 0, true);
         }
 
@@ -100,10 +110,75 @@ public class ImportService {
 
         if (!inserts.isEmpty()) batchInsertScores(inserts);
 
+        // 5. 프로필 이력 --------------------------------------------------------
+        if (profile != null && profile.hasSnapshotValues()) {
+            insertProfileSnapshot(userId, batchId, profile);
+        }
+
         jdbc.sql("UPDATE import_batches SET status = 'PARSED', changed_chart_count = ? WHERE id = ?")
                 .params(inserts.size(), batchId).update();
 
         return new ImportResult(batchId, rows.size(), inserts.size(), newCharts, false);
+    }
+
+    // -------------------------------------------------------------------------
+    // 프로필
+    //   users 는 '현재값 캐시', user_profile_snapshots 가 이력의 원천이다.
+    // -------------------------------------------------------------------------
+
+    /**
+     * 읽힌 필드만 덮어쓴다.
+     *
+     * <p>파서는 사용자 브라우저에서 돌고 이게이트 페이지 구조는 언제든 바뀐다. 통짜로 대입하면
+     * 셀렉터 하나가 어긋난 날 멀쩡하던 값이 통째로 null 이 된다. COALESCE 로 "못 읽었으면
+     * 건드리지 않는다"를 DB 수준에서 보장한다.
+     *
+     * <p>updated_at 은 건드리지 않는다 — V3 의 touch_updated_at 트리거가 채운다.
+     */
+    private void updateUserProfile(long userId, ProfileRow p) {
+        jdbc.sql("""
+                UPDATE users SET
+                    player_name           = COALESCE(?, player_name),
+                    character_name        = COALESCE(?, character_name),
+                    poptomo_id            = COALESCE(?, poptomo_id),
+                    pop_class             = COALESCE(?, pop_class),
+                    super_extra_rank      = COALESCE(?, super_extra_rank),
+                    play_count_normal     = COALESCE(?, play_count_normal),
+                    play_count_extra      = COALESCE(?, play_count_extra),
+                    play_count_time_10min = COALESCE(?, play_count_time_10min),
+                    play_count_time_16min = COALESCE(?, play_count_time_16min),
+                    brightness            = COALESCE(?, brightness),
+                    key_beam              = COALESCE(?, key_beam),
+                    guide_line            = COALESCE(?, guide_line),
+                    pop_kun               = COALESCE(CAST(? AS pop_kun_type), pop_kun),
+                    last_played_at        = COALESCE(?, last_played_at)
+                WHERE id = ?
+                """)
+                .params(p.playerName(), p.characterName(), p.poptomoId(),
+                        p.popClass(), p.superExtraRank(),
+                        p.playCountNormal(), p.playCountExtra(),
+                        p.playCountTime10min(), p.playCountTime16min(),
+                        p.brightness(), p.keyBeam(), p.guideLine(),
+                        p.popKun() == null ? null : p.popKun().name(),
+                        p.lastPlayedAt() == null ? null : java.sql.Timestamp.from(p.lastPlayedAt()),
+                        userId)
+                .update();
+    }
+
+    /** 배치 1회 = 스냅샷 1행. 팝클래스 추이 그래프가 여기서 나온다. */
+    private void insertProfileSnapshot(long userId, long batchId, ProfileRow p) {
+        jdbc.sql("""
+                INSERT INTO user_profile_snapshots
+                    (user_id, import_batch_id, pop_class, super_extra_rank,
+                     play_count_normal, play_count_extra,
+                     play_count_time_10min, play_count_time_16min, last_played_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """)
+                .params(userId, batchId, p.popClass(), p.superExtraRank(),
+                        p.playCountNormal(), p.playCountExtra(),
+                        p.playCountTime10min(), p.playCountTime16min(),
+                        p.lastPlayedAt() == null ? null : java.sql.Timestamp.from(p.lastPlayedAt()))
+                .update();
     }
 
     // -------------------------------------------------------------------------
