@@ -65,6 +65,13 @@ public class User {
     /** '26/06/27 14時頃' — JST, 시각 단위. 분·초는 신뢰하지 말 것. */
     @Column(name = "last_played_at") private Instant lastPlayedAt;
 
+    /**
+     * 랭킹 노출 동의 여부. 기본 false — 사용자가 직접 켜야 공개 목록에 나타난다.
+     * 서비스 자체는 전체 공개지만 자기 기록을 남에게 보일지는 별개 선택이다.
+     */
+    @Column(name = "ranking_visible", nullable = false)
+    private boolean rankingVisible;
+
     protected User() {}
 
     public static User ofGoogle(String googleId, String email) {
@@ -79,10 +86,16 @@ public class User {
         this.email = email;
     }
 
+    /** 랭킹 노출을 켜고 끈다. 끄면 다음 조회부터 공개 목록에서 사라진다. */
+    public void changeRankingVisibility(boolean visible) {
+        this.rankingVisible = visible;
+    }
+
     public Long getId()         { return id; }
     public String getGoogleId() { return googleId; }
     public String getEmail()    { return email; }
     public String getPlayerName() { return playerName; }
     public BigDecimal getPopClass() { return popClass; }
     public Instant getLastPlayedAt() { return lastPlayedAt; }
+    public boolean isRankingVisible() { return rankingVisible; }
 }

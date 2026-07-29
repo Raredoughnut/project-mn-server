@@ -9,9 +9,14 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
@@ -72,9 +77,66 @@ public class MeController {
                 user.getEmail(),
                 user.getPlayerName(),
                 user.getPopClass(),
-                user.getLastPlayedAt()
+                user.getLastPlayedAt(),
+                user.isRankingVisible()
         );
     }
+
+    @Operation(
+            summary = "랭킹 노출 설정 변경",
+            description = """
+            내 기록을 플레이어 랭킹(`GET /api/rankings/players`)에 보일지 정한다.
+            기본값은 꺼짐이라, 켜기 전까지는 어떤 공개 목록에도 나타나지 않는다.
+
+            ```js
+            fetch(`${API}/api/me/ranking-visibility`, {
+              method: 'PUT',
+              credentials: 'include',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+              },
+              body: JSON.stringify({ visible: true }),
+            })
+            ```
+
+            켜도 아직 스코어를 임포트하지 않았다면 랭킹에 나타나지 않는다 — 순위를 매길
+            팝클래스가 없기 때문이다. 이 API 는 성공하지만 목록에는 보이지 않는 상태가 되므로,
+            프론트에서 안내가 필요하다.
+
+            끄면 다음 조회부터 즉시 사라진다.
+            """
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "변경 완료. 적용된 값을 돌려준다"),
+            @ApiResponse(responseCode = "401", description = "미로그인", content = @Content)
+    })
+    @PutMapping("/ranking-visibility")
+    @Transactional
+    public RankingVisibilityResponse changeRankingVisibility(
+            @AuthenticationPrincipal MnUser principal,
+            @Valid @RequestBody RankingVisibilityRequest request
+    ) {
+        User user = users.findById(principal.userId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+
+        user.changeRankingVisibility(request.visible());
+
+        return new RankingVisibilityResponse(user.isRankingVisible());
+    }
+
+    @Schema(description = "랭킹 노출 설정 변경 요청")
+    public record RankingVisibilityRequest(
+            @Schema(description = "true 면 랭킹에 노출한다", example = "true", requiredMode =
+                    Schema.RequiredMode.REQUIRED)
+            @NotNull Boolean visible
+    ) {}
+
+    @Schema(description = "랭킹 노출 설정 변경 결과")
+    public record RankingVisibilityResponse(
+            @Schema(description = "적용된 설정값", example = "true")
+            boolean visible
+    ) {}
 
     @Schema(description = "로그인한 사용자 정보")
     public record MeResponse(
@@ -96,6 +158,11 @@ public class MeController {
 
             @Schema(description = "마지막 플레이 일시(JST 기준, 시각 단위). 임포트 전에는 null",
                     nullable = true)
-            Instant lastPlayedAt
+            Instant lastPlayedAt,
+
+            @Schema(description = "랭킹 노출 동의 여부. 프론트는 이 값으로 설정 토글의 상태를 그린다. "
+                    + "기본값은 false",
+                    example = "false")
+            boolean rankingVisible
     ) {}
 }
