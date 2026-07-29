@@ -31,8 +31,16 @@ spring:
             scope: openid, email, profile
 
 app:
-  cdn-url: https://cdn.raredonut.com/popn-sync.js
-  api-base: https://api.raredonut.com
+  # 북마클릿이 로드할 스크립트 주소. 기본은 CDN 이다.
+  # scripts/popn-sync.js 를 고치는 중이라면 로컬에 띄운 주소로 덮어써서 CDN 재배포 없이 확인한다.
+  cdn-url: ${APP_CDN_URL:https://cdn.raredonut.com/popn-sync.js}
+
+  # 북마클릿이 스코어를 POST 할 주소.
+  # 이 값은 발급 시점에 북마클릿 문자열 안에 그대로 박힌다 — 나중에 서버 설정을 고쳐도
+  # 이미 즐겨찾기에 저장된 북마클릿은 옛 주소를 계속 쓴다. 운영 배포에 APP_API_BASE 를
+  # 빠뜨리면 사용자에게 localhost 를 가리키는 북마클릿이 나가고, 재발급 전까지 복구되지 않는다.
+  # 운영: APP_API_BASE=https://api.raredonut.com
+  api-base: ${APP_API_BASE:http://localhost:8080}
   # 로그인/로그아웃 후 돌아갈 프론트 주소. 배포 시 FRONTEND_URL 환경변수로 덮어쓴다
   # (운영: https://mn.raredonut.com)
   frontend-url: ${FRONTEND_URL:http://localhost:3000}
