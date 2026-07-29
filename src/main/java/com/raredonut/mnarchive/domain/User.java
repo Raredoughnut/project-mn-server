@@ -36,7 +36,13 @@ public class User {
     @Column(name = "created_at", insertable = false, updatable = false)
     private Instant createdAt;
 
-    @Column(name = "updated_at", insertable = false)
+    /**
+     * DB 가 채운다 — INSERT 는 DEFAULT now(), UPDATE 는 touch_updated_at 트리거(V3).
+     *
+     * updatable=false 가 반드시 있어야 한다. 없으면 Hibernate 가 UPDATE 문에 이 컬럼을
+     * 끼워 넣는데, 엔티티에는 값이 없으니 NULL 이 나가고 NOT NULL 제약에 걸린다.
+     */
+    @Column(name = "updated_at", insertable = false, updatable = false)
     private Instant updatedAt;
 
     // ── 이게이트에서 긁어온 값 (최신 스냅샷) ──────────────────────────────
