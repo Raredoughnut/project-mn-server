@@ -42,7 +42,9 @@ dependencies {
 
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.security:spring-security-test")
-    testImplementation("org.testcontainers:postgresql")
+    // Testcontainers 2.x 에서 모듈명이 바뀌었다 (1.x 의 org.testcontainers:postgresql).
+    // 옛 좌표를 쓰면 BOM 이 버전을 못 붙여 테스트 컴파일 자체가 실패한다.
+    testImplementation("org.testcontainers:testcontainers-postgresql")
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }

@@ -36,6 +36,10 @@ app:
   # 로그인/로그아웃 후 돌아갈 프론트 주소. 배포 시 FRONTEND_URL 환경변수로 덮어쓴다
   # (운영: https://mn.raredonut.com)
   frontend-url: ${FRONTEND_URL:http://localhost:3000}
+  # CORS 허용 오리진. 보통은 프론트가 하나뿐이라 frontend-url 을 그대로 따라간다.
+  # 프리뷰 배포처럼 오리진이 여러 개 필요할 때만 CORS_ALLOWED_ORIGINS 에 쉼표로 나열한다.
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:${app.frontend-url}}
+
 springdoc:
   api-docs:
     enabled: true
