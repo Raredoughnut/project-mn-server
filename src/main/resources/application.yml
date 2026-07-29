@@ -31,9 +31,19 @@ spring:
             scope: openid, email, profile
 
 app:
-  # 북마클릿이 로드할 스크립트 주소. 기본은 CDN 이다.
-  # scripts/popn-sync.js 를 고치는 중이라면 로컬에 띄운 주소로 덮어써서 CDN 재배포 없이 확인한다.
-  cdn-url: ${APP_CDN_URL:https://cdn.raredonut.com/popn-sync.js}
+  # 북마클릿이 로드할 스크립트 주소.
+  #
+  # jsDelivr 이 GitHub 저장소를 그대로 서빙한다 — 저장소가 public 이라 별도 인프라도 업로드
+  # 절차도 없다. 배포 = git push. (cdn.raredonut.com 은 DNS 에 존재한 적이 없다.)
+  #
+  # @main 은 브랜치를 가리켜 jsDelivr 이 최대 7일까지 캐시한다. 북마클릿에 ?v=Date.now() 가
+  # 붙어 브라우저 캐시는 우회되지만 엣지 캐시는 별개다. 즉시 반영이 필요하면 커밋 해시를
+  # 고정할 것: .../project-mn-server@<commit>/scripts/popn-sync.js
+  #
+  # 스크립트를 고치는 중이라면 로컬로 덮어써서 푸시 없이 확인한다:
+  #   cd scripts && python3 -m http.server 9000
+  #   APP_CDN_URL=http://localhost:9000/popn-sync.js
+  cdn-url: ${APP_CDN_URL:https://cdn.jsdelivr.net/gh/Raredoughnut/project-mn-server@main/scripts/popn-sync.js}
 
   # 북마클릿이 스코어를 POST 할 주소.
   # 이 값은 발급 시점에 북마클릿 문자열 안에 그대로 박힌다 — 나중에 서버 설정을 고쳐도

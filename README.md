@@ -18,8 +18,17 @@ e-amusement의 플레이 데이터를 북마클릿으로 수집해 저장하고,
 레벨 기준 조회(`WHERE level >= 45`)와 이력 저장량에서 유리하다.
 
 **수집은 북마클릿.** 확장 프로그램 설치 없이, 이게이트 페이지에서 클릭 한 번.
-`scripts/popn-sync.js`가 본체이고 CDN에서 로드된다 — 페이지 구조가 바뀌면 이 파일만 재배포하면
-사용자는 아무것도 하지 않아도 된다.
+`scripts/popn-sync.js`가 본체이고 CDN에서 로드된다 — 페이지 구조가 바뀌면 이 파일만 고치면
+사용자는 아무것도 하지 않아도 된다(북마클릿을 다시 설치할 필요가 없다).
+
+CDN은 jsDelivr이 저장소를 그대로 서빙한다. **배포 절차는 `git push`가 전부다.**
+브랜치를 가리키므로 엣지 캐시가 최대 7일까지 남을 수 있고, 즉시 반영이 필요하면
+`APP_CDN_URL`에 커밋 해시를 고정한다. 스크립트를 고치는 중이라면 로컬로 돌린다:
+
+```bash
+cd scripts && python3 -m http.server 9000
+export APP_CDN_URL=http://localhost:9000/popn-sync.js
+```
 
 **text/plain + 바디 토큰.** CORS simple request 조건을 만족시켜 프리플라이트를 없앤다.
 Authorization 헤더나 application/json을 쓰면 OPTIONS가 발생한다.

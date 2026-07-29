@@ -30,11 +30,14 @@ class AppPropertiesTest {
         });
     }
 
-    /** 스크립트는 고칠 일이 드물어 CDN 이 기본이다. 로컬에서 고칠 때만 덮어쓴다. */
+    /**
+     * 기본값은 jsDelivr 이 서빙하는 저장소의 scripts/popn-sync.js 다.
+     * 별도 CDN 을 두지 않는다는 결정이라, 주소가 조용히 바뀌면 북마클릿이 통째로 죽는다.
+     */
     @Test
-    void cdn_url_기본값은_운영_CDN_이다() {
+    void cdn_url_기본값은_jsdelivr_이다() {
         runner.run(context -> assertThat(context.getEnvironment().getProperty("app.cdn-url"))
-                .isEqualTo("https://cdn.raredonut.com/popn-sync.js"));
+                .isEqualTo("https://cdn.jsdelivr.net/gh/Raredoughnut/project-mn-server@main/scripts/popn-sync.js"));
     }
 
     @Test
